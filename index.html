@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to the Game Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #FFF0F5; /* Barbie light pink */
+        }
+        .login-card {
+            background-color: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .login-title {
+            color: #f06292; /* Barbie hot pink */
+            font-weight: 700;
+        }
+        .login-input {
+            border: 2px solid #fce4ec; /* Barbie soft pink */
+            border-radius: 12px;
+            padding: 12px 16px;
+            transition: border-color 0.3s ease;
+        }
+        .login-input:focus {
+            outline: none;
+            border-color: #f06292;
+            box-shadow: 0 0 0 3px rgba(240, 98, 146, 0.3);
+        }
+        .login-button {
+            background-color: #f06292;
+            color: white;
+            font-weight: 600;
+            border-radius: 12px;
+            padding: 12px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .login-button:hover {
+            background-color: #e91e63;
+            transform: scale(1.03);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="login-card w-full max-w-sm p-8">
+        <h1 class="login-title text-3xl text-center mb-6">Get Started!</h1>
+        <p class="text-center text-gray-600 mb-8">Just a few details to set up your profile.</p>
+        
+        <form id="login-form" class="space-y-6">
+            <div>
+                <label for="user-name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                <input type="text" id="user-name" class="login-input w-full" placeholder="e.g., Barbie" required>
+            </div>
+            
+            <div>
+                <label for="pet-name" class="block text-sm font-medium text-gray-700 mb-1">Your Pet's Name</label>
+                <input type="text" id="pet-name" class="login-input w-full" placeholder="e.g., Taffy" required>
+            </div>
+            
+            <button type="submit" class="login-button w-full">Let's Play!</button>
+        </form>
+    </div>
+
+    <script>
+        // Check if user is already logged in
+        /*
+        const existingUserName = localStorage.getItem('gameHubUserName');
+        if (existingUserName) {
+            // If user exists, redirect immediately to index.html
+            window.location.href = 'index.html';
+        }
+        */
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // 1. Get values from inputs
+            const userName = document.getElementById('user-name').value;
+            const petName = document.getElementById('pet-name').value;
+            
+            // 2. Save to localStorage
+            localStorage.setItem('gameHubUserName', userName);
+            localStorage.setItem('gameHubPetName', petName);
+            
+            // 3. Set default 1000 coins for new user
+            // Only set default coins if they don't already exist (protects existing users)
+            if (!localStorage.getItem('gameHubCoinBalance')) {
+                localStorage.setItem('gameHubCoinBalance', '1000');
+            }
+
+            // 4. Redirect to the main app page
+            window.location.href = 'home.html';
+        });
+    </script>
+
+</body>
+</html>

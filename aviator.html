@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ಕಂದಮ್ಮ's Avaitor</title>
+    <!-- 1. Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Load Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+    <!-- 3. Custom Styles --><style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation; /* Disable double-tap to zoom on mobile */
+            background-color: #000;
+            /* Prevent text selection */
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10+ */
+            user-select: none; /* Standard */
+        }
+        
+        /* NEW: Remove click/touch highlights */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            -moz-outline: none;
+        }
+
+        /* NEW: Game Title Font */
+        .font-russo {
+            font-family: 'Russo One', sans-serif;
+        }
+
+        /* Custom styles for disabled button */
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* Style for the bet input */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        /* Custom notification style */
+        .notification {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .notification.fade-out {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        /* Custom scrollbar for main controls */
+        #main-controls-scroller::-webkit-scrollbar {
+            width: 4px;
+        }
+        #main-controls-scroller::-webkit-scrollbar-thumb {
+            background-color: #4a5568; /* gray-600 */
+            border-radius: 4px;
+        }
+        #main-controls-scroller::-webkit-scrollbar-track {
+            background-color: rgba(0,0,0,0.1);
+        }
+
+    </style>
+</head>
+<body class="bg-black text-white h-screen overflow-hidden flex flex-col">
+
+    <!-- Top Game Area (Fixed Height) -->
+    <!-- NEW: Changed to h-1/2 for 50/50 split on mobile, sm:h-3/5 for desktop -->
+    <div id="game-area" class="flex-shrink-0 relative w-full h-1/2 sm:h-3/5">
+        <!-- Canvas for drawing the graph and plane --><canvas id="game-canvas" class="absolute inset-0 w-full h-full"></canvas>
+
+        <!-- Header -->
+        <!-- NEW: Reduced padding and text size for mobile -->
+        <header class="absolute top-0 left-0 right-0 p-2 sm:p-4 z-10 flex justify-between items-center w-full">
+            <!-- ADDED ID for cheat trigger -->
+            <h1 id="game-title" class="font-russo text-xl sm:text-3xl font-bold text-indigo-400 cursor-pointer select-none">ಕಂದಮ್ಮ's Avaitor</h1>
+            <div class="bg-gray-900 bg-opacity-70 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg shadow-inner">
+                <span class="text-xs sm:text-sm font-medium text-gray-400">COINS: </span>
+                <span id="coin-balance" class="text-sm sm:text-lg font-bold text-yellow-400">1000.00</span>
+            </div>
+        </header>
+
+        <!-- History of Multipliers -->
+        <!-- NEW: Adjusted position (top-14) and item size for mobile -->
+        <div class="absolute top-14 sm:top-16 left-0 right-0 px-2 sm:px-4 pt-0 pb-4 z-10 h-8 flex items-center gap-2 overflow-hidden w-full">
+            <span class="text-xs text-gray-500 font-semibold flex-shrink-0">History:</span>
+            <div id="history-bar" class="flex flex-row-reverse gap-1 sm:gap-2 flex-grow overflow-x-auto justify-end">
+                <!-- History items will be injected here --></div>
+        </div>
+        
+        <!-- Notification Area --><div id="notification-area" class="absolute top-24 right-4 z-50 flex flex-col gap-2">
+            <!-- Notifications will be injected here --></div>
+
+        <!-- HIDDEN FOUNDER'S CODE INPUT MODAL -->
+        <div id="cheat-input-box" class="absolute inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-70">
+            <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-indigo-500 flex flex-col gap-4 w-11/12 max-w-sm">
+                <h3 class="text-xl font-bold text-indigo-300 text-center">Enter Founder's Code</h3>
+                <input type="text" id="founder-code-input" placeholder="Code..." 
+                       class="bg-gray-900 text-yellow-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center uppercase tracking-wider font-bold">
+                <button id="submit-cheat-btn" class="bg-green-600 hover:bg-green-500 py-3 rounded-lg font-bold text-white transition duration-200">Submit Code</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Controls Area (Scrollable) -->
+    <!-- NEW: Changed to h-1/2 for 50/50 split on mobile -->
+    <div id="main-controls-scroller" class="h-1/2 sm:flex-grow w-full bg-slate-900 overflow-y-auto p-2 sm:p-4 flex flex-col gap-3 sm:gap-4">
+        
+        <!-- Bet Control 1 (main functional) -->
+        <!-- NEW: Reduced padding and font sizes for mobile -->
+        <div class="flex-shrink-0 bg-slate-800 p-2 sm:p-4 rounded-lg shadow-lg">
+            <div class="flex justify-between items-center mb-2 sm:mb-3">
+                <button class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-gray-700 text-xs sm:text-sm font-medium hover:bg-gray-600">Bet</button>
+                <button class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-gray-700 text-xs sm:text-sm font-medium hover:bg-gray-600">Auto</button>
+            </div>
+            <div class="flex mb-2 sm:mb-3">
+                <button id="bet-minus-1" class="bet-minus bg-gray-700 px-3 py-2 rounded-l-md hover:bg-gray-600 text-lg sm:text-xl font-bold">-</button>
+                <input type="number" id="bet-amount-1" class="bet-amount w-full bg-gray-700 text-white font-bold p-2 text-center border-y border-gray-600 focus:outline-none focus:bg-gray-600" value="1.00" min="1.00" step="0.01">
+                <button id="bet-plus-1" class="bet-plus bg-gray-700 px-3 py-2 rounded-r-md hover:bg-gray-600 text-lg sm:text-xl font-bold">+</button>
+            </div>
+            <div class="grid grid-cols-4 gap-2 mb-2 sm:mb-3">
+                <button class="quick-bet-btn quick-bet-btn-1 bg-gray-600 hover:bg-gray-500 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm" data-panel="1" data-amount="1">1</button>
+                <button class="quick-bet-btn quick-bet-btn-1 bg-gray-600 hover:bg-gray-500 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm" data-panel="1" data-amount="2">2</button>
+                <button class="quick-bet-btn quick-bet-btn-1 bg-gray-600 hover:bg-gray-500 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm" data-panel="1" data-amount="5">5</button>
+                <button class="quick-bet-btn quick-bet-btn-1 bg-gray-600 hover:bg-gray-500 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm" data-panel="1" data-amount="10">10</button>
+            </div>
+            
+            <button id="bet-button-1" class="bet-button mt-2 sm:mt-4 w-full bg-green-500 hover:bg-green-600 text-white font-extrabold py-3 sm:py-4 px-4 sm:px-6 rounded-lg text-lg sm:text-xl shadow-md transition-all duration-200 transform active:scale-95" data-panel="1">
+                Bet <span id="bet-button-amount-1" class="bet-button-amount">1.00</span> Coin(s)
+            </button>
+        </div>
+
+        <!-- Bet Control 2 (now functional) -->
+        <!-- NEW: Reduced padding and font sizes for mobile -->
+        <div class="flex-shrink-0 bg-slate-800 p-2 sm:p-4 rounded-lg shadow-lg">
+            <div class="flex justify-between items-center mb-2 sm:mb-3">
+                <button class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-gray-700 text-xs sm:text-sm font-medium hover:bg-gray-600">Bet</button>
+                <button class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-gray-700 text-xs sm:text-sm font-medium hover:bg-gray-600">Auto</button>
+            </div>
+            <div class="flex mb-2 sm:mb-3">
+                <button id="bet-minus-2" class="bet-minus bg-gray-700 px-3 py-2 rounded-l-md hover:bg-gray-600 text-lg sm:text-xl font-bold">-</button>
+                <input type="number" id="bet-amount-2" class="bet-amount w-full bg-gray-700 text-white font-bold p-2 text-center border-y border-gray-600 focus:outline-none focus:bg-gray-600" value="1.00" min="1.00" step="0.01">
+                <button id="bet-plus-2" class="bet-plus bg-gray-700 px-3 py-2 rounded-r-md hover:bg-gray-600 text-lg sm:text-xl font-bold">+</button>
+            </div>
+            <div class="grid grid-cols-4 gap-2 mb-2 sm:mb-3">
+                <button class="quick-bet-btn quick-bet-btn-2 bg-gray-600 hover:bg-gray-500 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm" data-panel="2" data-amount="1">1</button>
+                <button class="quick-bet-btn quick-bet-btn-2 bg-gray-600 hover:bg-gray-500 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm" data-panel="2" data-amount="2">2</button>
+                <button class="quick-bet-btn quick-bet-btn-2 bg-gray-600 hover:bg-gray-500 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm" data-panel="2" data-amount="5">5</button>
+                <button class="quick-bet-btn quick-bet-btn-2 bg-gray-600 hover:bg-gray-500 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm" data-panel="2" data-amount="10">10</button>
+            </div>
+
+            <button id="bet-button-2" class="bet-button mt-2 sm:mt-4 w-full bg-green-500 hover:bg-green-600 text-white font-extrabold py-3 sm:py-4 px-4 sm:px-6 rounded-lg text-lg sm:text-xl shadow-md transition-all duration-200 transform active:scale-95" data-panel="2">
+                Bet <span id="bet-button-amount-2" class="bet-button-amount">1.00</span> Coin(s)
+            </button>
+        </div>
+
+        <!-- Live Bets Panel (Pro Feature) -->
+        <div class="flex-shrink-0 bg-slate-800 bg-opacity-70 p-2 rounded-lg h-72">
+            <!-- Tabs for All Bets / Previous / Top --><div class="flex justify-around border-b border-gray-700 mb-2">
+                <button class="py-2 px-4 text-xs sm:text-sm font-semibold text-white border-b-2 border-indigo-500">All Bets</button>
+                <button class="py-2 px-4 text-xs sm:text-sm font-semibold text-gray-400 hover:text-white">Previous</button>
+                <button class="py-2 px-4 text-xs sm:text-sm font-semibold text-gray-400 hover:text-white">Top</button>
+            </div>
+            <div id="live-bets-list" class="h-full overflow-y-auto">
+                <!-- Live bets will be injected here --></div>
+        </div>
+
+    </div>
+
+    <!-- 4. Game Logic Script --><script type="module">
+        // --- DOM Elements ---
+        const coinBalanceEl = document.getElementById('coin-balance');
+        const historyBarEl = document.getElementById('history-bar');
+        const notificationAreaEl = document.getElementById('notification-area');
+        const liveBetsListEl = document.getElementById('live-bets-list');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const gameAreaEl = document.getElementById('game-area');
+
+        // --- CHEAT ELEMENTS ---
+        const gameTitleEl = document.getElementById('game-title');
+        const cheatInputBox = document.getElementById('cheat-input-box');
+        const founderCodeInput = document.getElementById('founder-code-input');
+        const submitCheatBtn = document.getElementById('submit-cheat-btn');
+        
+        // --- DOM Elements for Bet Panels ---
+        const betPanels = {
+            1: {
+                amountEl: document.getElementById('bet-amount-1'),
+                buttonEl: document.getElementById('bet-button-1'),
+                buttonAmountSpan: document.getElementById('bet-button-amount-1'),
+                minusEl: document.getElementById('bet-minus-1'),
+                plusEl: document.getElementById('bet-plus-1'),
+                quickBetBtns: document.querySelectorAll('.quick-bet-btn-1')
+            },
+            2: {
+                amountEl: document.getElementById('bet-amount-2'),
+                buttonEl: document.getElementById('bet-button-2'),
+                buttonAmountSpan: document.getElementById('bet-button-amount-2'),
+                minusEl: document.getElementById('bet-minus-2'),
+                plusEl: document.getElementById('bet-plus-2'),
+                quickBetBtns: document.querySelectorAll('.quick-bet-btn-2')
+            }
+        };
+
+        // --- Audio Context for "Pro" Sounds ---
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        
+        function playSound(type) {
+            if (!audioCtx) return;
+            
+            const now = audioCtx.currentTime;
+            
+            if (type === 'bet') {
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(300, now);
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                oscillator.connect(gain).connect(audioCtx.destination);
+                oscillator.start(now);
+                oscillator.stop(now + 0.1);
+            } else if (type === 'cashout') {
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, now); // C5
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                oscillator.connect(gain).connect(audioCtx.destination);
+                oscillator.start(now);
+                oscillator.stop(now + 0.2);
+            } else if (type === 'crash') {
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(150, now);
+                oscillator.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                oscillator.connect(gain).connect(audioCtx.destination);
+                oscillator.start(now);
+                oscillator.stop(now + 0.2);
+            } else if (type === 'start') {
+                const noise = audioCtx.createBufferSource();
+                const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.5, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                noise.buffer = buffer;
+                
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(100, now);
+                filter.frequency.exponentialRampToValueAtTime(1000, now + 0.3);
+                
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                
+                noise.connect(filter).connect(gain).connect(audioCtx.destination);
+                noise.start(now);
+                noise.stop(now + 0.3);
+            }
+        }
+        // Initialize audio on first user interaction
+        document.body.addEventListener('click', initAudio, { once: true });
+
+        // --- Game State ---
+        let userCoins = 1000.00;
+        let currentMultiplier = 1.00;
+        let crashPoint = 1.00;
+        let startTime = 0;
+        let crashTime = 0; // NEW: Store the exact timestamp of the crash
+        let animationFrameId = null;
+        let gameState = 'WAITING'; // WAITING, IN_PROGRESS, CRASHED
+        let waitingTimer = 5; 
+        let crashedTimer = 0.5; // REDUCED from 1.5s to 0.5s for "mili sec" feel
+        let lastUpdateTime = 0;
+        const history = [];
+        
+        // NEW Colorful Themes
+        const themeColors = [
+            { name: 'blue', rays: 'rgba(0, 191, 255, 0.2)', graph: '#00BFFF', graphFill: 'rgba(0, 191, 255, 0.4)' },
+            { name: 'purple', rays: 'rgba(153, 50, 204, 0.2)', graph: '#9932CC', graphFill: 'rgba(153, 50, 204, 0.4)' },
+            { name: 'orange', rays: 'rgba(255, 140, 0, 0.2)', graph: '#FF8C00', graphFill: 'rgba(255, 140, 0, 0.4)' },
+            { name: 'gold', rays: 'rgba(255, 215, 0, 0.2)', graph: '#FFD700', graphFill: 'rgba(255, 215, 0, 0.4)' },
+            { name: 'green', rays: 'rgba(50, 205, 50, 0.2)', graph: '#32CD32', graphFill: 'rgba(50, 205, 50, 0.4)' }
+        ];
+        
+        // --- State for BOTH Bet Panels ---
+        let betStates = {
+            1: { currentBet: 0, hasPlacedBet: false, hasCashedOut: false },
+            2: { currentBet: 0, hasPlacedBet: false, hasCashedOut: false }
+        };
+
+        // --- "Pro" Live Bet Simulation ---
+        let liveBets = [];
+        const fakeUsernames = ["Player123", "AviatorPro", "RiskTaker", "Lucky7s", "HighFlyer", "All_In_Amy", "BetMaster", "CashOutKing", "GambleGoat", "Winner365"];
+        
+        function generateLiveBets() {
+            liveBets = [];
+            const betCount = Math.floor(Math.random() * 15) + 10; // 10-25 bets
+            for (let i = 0; i < betCount; i++) {
+                liveBets.push({
+                    id: i,
+                    name: fakeUsernames[Math.floor(Math.random() * fakeUsernames.length)] + (Math.floor(Math.random() * 900) + 100),
+                    bet: (Math.floor(Math.random() * 50 + 1) * 10).toFixed(2), // 10 to 500
+                    status: 'pending', // pending, cashed_out, lost
+                    cashOutAt: 0,
+                    cashOutPayout: 0
+                });
+            }
+            renderLiveBets();
+        }
+
+        function updateLiveBets() {
+            if (gameState !== 'IN_PROGRESS') return;
+
+            // Randomly cash out some players
+            liveBets.forEach(bet => {
+                if (bet.status === 'pending' && Math.random() < 0.005) { // Small chance each frame
+                    // Cash out at a multiplier slightly *before* the current one
+                    const cashOutMultiplier = Math.max(1.01, currentMultiplier * (0.9 + Math.random() * 0.1));
+                    if (cashOutMultiplier < crashPoint) {
+                        bet.status = 'cashed_out';
+                        bet.cashOutAt = cashOutMultiplier;
+                        bet.cashOutPayout = parseFloat(bet.bet) * cashOutMultiplier;
+                    }
+                }
+            });
+            renderLiveBets();
+        }
+
+        function endRoundLiveBets() {
+            liveBets.forEach(bet => {
+                if (bet.status === 'pending') {
+                    bet.status = 'lost';
+                }
+            });
+            renderLiveBets();
+        }
+
+        function renderLiveBets() {
+            if (!liveBetsListEl) return;
+            liveBetsListEl.innerHTML = '';
+            
+            // Sort: pending first, then cashed_out, then lost
+            liveBets.sort((a, b) => {
+                if (a.status === 'pending' && b.status !== 'pending') return -1;
+                if (a.status !== 'pending' && b.status === 'pending') return 1;
+                if (a.status === 'cashed_out' && b.status === 'lost') return -1;
+                if (a.status === 'lost' && b.status === 'cashed_out') return 1;
+                return b.bet - a.bet; // Sort by bet amount
+            });
+
+            liveBets.forEach(bet => {
+                let colorClass = 'text-white';
+                let rightText = `${parseFloat(bet.bet).toFixed(2)} Coins`; // CHANGED
+                
+                if (bet.status === 'cashed_out') {
+                    colorClass = 'text-green-400';
+                    rightText = `+${bet.cashOutPayout.toFixed(2)} @ ${bet.cashOutAt.toFixed(2)}x`;
+                } else if (bet.status === 'lost') {
+                    colorClass = 'text-red-400';
+                }
+
+                liveBetsListEl.innerHTML += `
+                    <div class="flex justify-between items-center text-xs p-1 ${colorClass}">
+                        <span>${bet.name}</span>
+                        <span class="font-semibold">${rightText}</span>
+                    </div>
+                `;
+            });
+        }
+
+        // --- Utility Functions ---
+
+        function showNotification(message, type = 'error') {
+            const notification = document.createElement('div');
+            notification.classList.add('notification', 'p-3', 'rounded-lg', 'shadow-lg', 'text-white', 'font-semibold', 'text-sm', 'bg-opacity-80');
+            
+            if (type === 'error') {
+                notification.classList.add('bg-red-500');
+            } else if (type === 'success') {
+                notification.classList.add('bg-green-500');
+            } else {
+                notification.classList.add('bg-blue-500');
+            }
+            
+            notification.textContent = message;
+            notificationAreaEl.appendChild(notification);
+
+            // Fade out and remove
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        function getHistoryColorClass(multiplier) {
+            if (multiplier < 1.5) {
+                return 'bg-red-500';
+            } else if (multiplier < 3) {
+                return 'bg-blue-500';
+            } else if (multiplier < 7) {
+                return 'bg-purple-500';
+            } else if (multiplier < 15) {
+                return 'bg-orange-500';
+            } else {
+                return 'bg-green-500';
+            }
+        }
+
+        function updateUI() {
+            coinBalanceEl.textContent = userCoins.toFixed(2);
+            
+            // NEW: List of all possible button classes to clean up
+            const allButtonClasses = [
+                'bg-green-500', 'hover:bg-green-600', // Bet
+                'bg-red-500', 'hover:bg-red-600',      // Cancel / Waiting
+                'bg-yellow-500', 'hover:bg-yellow-600', 'text-gray-900', 'font-bold', // Cash Out
+                'bg-gray-500', // Cashed Out
+                'btn-disabled' // Disabled state
+            ];
+
+            // Update both panels
+            [1, 2].forEach(panelNum => {
+                const state = betStates[panelNum];
+                const dom = betPanels[panelNum];
+                
+                const betAmountValue = parseFloat(dom.amountEl.value).toFixed(2);
+                dom.buttonAmountSpan.textContent = betAmountValue;
+
+                // Clean all dynamic classes first
+                dom.buttonEl.classList.remove(...allButtonClasses);
+                dom.buttonEl.classList.add('text-white'); // Default text color
+
+                if (gameState === 'WAITING') {
+                    if (state.hasPlacedBet) { // "Cancel"
+                        dom.buttonEl.textContent = `Cancel`;
+                        dom.buttonEl.classList.add('bg-red-500', 'hover:bg-red-600');
+                    } else { // "Bet"
+                        dom.buttonEl.textContent = `Bet ${betAmountValue} Coin(s)`; // CHANGED
+                        dom.buttonEl.classList.add('bg-green-500', 'hover:bg-green-600');
+                    }
+                    dom.amountEl.disabled = state.hasPlacedBet;
+                    dom.minusEl.disabled = state.hasPlacedBet;
+                    dom.plusEl.disabled = state.hasPlacedBet;
+                    dom.quickBetBtns.forEach(btn => btn.disabled = state.hasPlacedBet);
+
+                } else { // IN_PROGRESS or CRASHED
+                    if (state.hasPlacedBet && !state.hasCashedOut) {
+                        dom.buttonEl.textContent = `Cash Out ${(state.currentBet * currentMultiplier).toFixed(2)} Coin(s)`; // CHANGED
+                        // CHANGED: Yellow cash out button
+                        dom.buttonEl.classList.add('bg-yellow-500', 'hover:bg-yellow-600', 'text-gray-900', 'font-bold');
+                    } else if (state.hasCashedOut) {
+                        dom.buttonEl.textContent = 'Cashed Out!';
+                        dom.buttonEl.classList.add('btn-disabled', 'bg-gray-500');
+                    } else { // No bet placed for this round
+                        // CHANGED: Red "Waiting" button
+                        dom.buttonEl.textContent = 'Waiting for Next Round';
+                        dom.buttonEl.classList.add('btn-disabled', 'bg-red-500');
+                    }
+                    dom.amountEl.disabled = true;
+                    dom.minusEl.disabled = true;
+                    dom.plusEl.disabled = true;
+                    dom.quickBetBtns.forEach(btn => btn.disabled = true);
+                }
+            });
+        }
+        
+        function updateHistoryBar() {
+            historyBarEl.innerHTML = '';
+            // NEW: Sliced -20 for more history, reduced padding for mobile
+            history.slice(-20).forEach(multiplier => {  
+                const el = document.createElement('span');
+                el.classList.add('px-2', 'py-0.5', 'sm:px-3', 'sm:py-1', 'rounded-full', 'text-xs', 'font-bold', 'shadow-md', 'bg-opacity-70', 'flex-shrink-0');
+                el.textContent = `${multiplier.toFixed(2)}x`;
+                el.classList.add(getHistoryColorClass(multiplier));
+                historyBarEl.appendChild(el);
+            });
+        }
+
+        // --- Canvas Drawing ---
+        
+        function resizeCanvas() {
+            if (gameAreaEl) {
+                canvas.width = gameAreaEl.clientWidth * window.devicePixelRatio;
+                canvas.height = gameAreaEl.clientHeight * window.devicePixelRatio;
+            }
+        }
+
+        function getCurrentTheme(multiplier) {
+            if (multiplier < 1.5) return themeColors[0]; // Blue
+            if (multiplier < 3) return themeColors[1];   // Purple
+            if (multiplier < 7) return themeColors[2];   // Orange
+            if (multiplier < 15) return themeColors[3];  // Gold
+            return themeColors[4];                       // Green
+        }
+        
+        function drawPlane(x, y, angle) {
+            // NEW: Reduced plane size for mobile
+            const s = (window.innerWidth < 640 ? 10 : 15) * window.devicePixelRatio;  
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle); 
+            
+            ctx.fillStyle = '#E53E3E'; // Solid red
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // Propeller
+            ctx.beginPath();
+            ctx.arc(s * 1.6, 0, s * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(s * 1.5, -s * 0.5, s * 0.2, s * 1);
+            ctx.fillRect(s * 1.3, -s * 0.3, s * 0.6, s * 0.1);
+            ctx.fillRect(s * 1.3, s * 0.2, s * 0.6, s * 0.1);
+
+            // Fuselage
+            ctx.beginPath();
+            ctx.moveTo(-s * 1.5, s * 0.4); 
+            ctx.lineTo(s * 1.2, s * 0.4); 
+            ctx.quadraticCurveTo(s * 1.8, 0, s * 1.2, -s * 0.4); 
+            ctx.lineTo(-s * 1.5, -s * 0.4); 
+            ctx.closePath();
+            ctx.fill();
+            
+            // Wing (one side, perspective)
+            ctx.beginPath();
+            ctx.moveTo(-s * 0.5, -s * 0.4);
+            ctx.lineTo(-s * 0.3, -s * 1.5);
+            ctx.lineTo(s * 0.3, -s * 1.5);
+            ctx.lineTo(s * 0.5, -s * 0.4);
+            ctx.closePath();
+            ctx.fill();
+
+            // Tail Wing
+            ctx.beginPath();
+            ctx.moveTo(-s * 1.3, -s * 0.4);
+            ctx.lineTo(-s * 1.8, -s * 1);
+            ctx.lineTo(-s * 1.5, -s * 1);
+            ctx.lineTo(-s * 1.0, -s * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        function drawGraph(time) {
+            if (canvas.height === 0 || canvas.width === 0) return; // Skip drawing if canvas not sized
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            // Padding
+            // NEW: Reduced padding for mobile
+            const bottomPadding = (window.innerWidth < 640 ? 30 : 50) * window.devicePixelRatio;
+            const topPadding = (window.innerWidth < 640 ? 40 : 80) * window.devicePixelRatio;
+            const sidePadding = (window.innerWidth < 640 ? 20 : 50) * window.devicePixelRatio;
+
+            // --- Get Current Theme ---
+            const currentTheme = getCurrentTheme(currentMultiplier);
+
+            // --- Calculate Duration and Plane Position (NEW LOGIC) ---
+            let duration;
+            if (gameState === 'WAITING') {
+                duration = 0;
+            } else if (gameState === 'IN_PROGRESS') {
+                duration = (time - startTime) / 1000;
+            } else { // CRASHED
+                duration = (crashTime - startTime) / 1000; // Freeze duration at crash time
+                if (duration < 0) duration = 0; // Safety check
+            }
+
+            const planeMultiplier = (gameState === 'WAITING') ? 1 : 1 + 0.1 * Math.pow(duration, 2);
+            
+            const planeX = sidePadding + (w - 2 * sidePadding) * (duration / 10);
+            const graphHeight = h - bottomPadding - topPadding;
+            // NEW: Clamped planeY to prevent it from going off-screen at high multipliers
+            const planeY = Math.max(topPadding, (h - bottomPadding) - graphHeight * (Math.log(planeMultiplier) / Math.log(15)));
+            const angle = -Math.atan(0.2 * duration * 0.5);
+
+            // --- Draw Graph Line ---
+            if (gameState === 'IN_PROGRESS' || gameState === 'CRASHED') {
+                ctx.fillStyle = currentTheme.graphFill; // NEW: Colorful fill
+                ctx.strokeStyle = currentTheme.graph; // NEW: Colorful stroke
+                
+                const graphDuration = (gameState === 'CRASHED') ? (Math.sqrt((crashPoint - 1) / 0.1)) : duration;
+
+                let lastX = sidePadding;
+                let lastY = h - bottomPadding;
+                
+                // --- Draw the fill area ---
+                ctx.beginPath();
+                ctx.moveTo(sidePadding, h - bottomPadding);
+                for (let t = 0; t <= graphDuration; t += 0.05) { // finer steps for smoother curve
+                    const x = sidePadding + (w - 2 * sidePadding) * (t / 10); // 10 seconds to cross
+                    const multiplier = 1 + 0.1 * Math.pow(t, 2); // Exponential curve
+                    
+                    const y = Math.max(topPadding, (h - bottomPadding) - graphHeight * (Math.log(multiplier) / Math.log(15))); // Clamp Y
+                    
+                    if (x > w - sidePadding) break;
+                    
+                    ctx.lineTo(x, y);
+                    lastX = x;
+                    lastY = y;
+                }
+                ctx.lineTo(lastX, h - bottomPadding); // Line down to bottom
+                ctx.lineTo(sidePadding, h - bottomPadding); // Line back to start
+                ctx.closePath();
+                ctx.fill();
+
+                // --- Draw Fanning Graph Rays ---
+                ctx.beginPath();
+                ctx.lineWidth = 0.5 * window.devicePixelRatio;
+                ctx.strokeStyle = currentTheme.rays; // Use the theme's ray color
+                const rayCount = 70;
+                for (let i = 0; i <= rayCount; i++) {
+                    const t = (graphDuration / rayCount) * i;
+                    const x = sidePadding + (w - 2 * sidePadding) * (t / 10);
+                    const multiplier = 1 + 0.1 * Math.pow(t, 2);
+                    const y = Math.max(topPadding, (h - bottomPadding) - graphHeight * (Math.log(multiplier) / Math.log(15))); // Clamp Y
+                    
+                    if (x > w - sidePadding) break;
+                    
+                    ctx.moveTo(sidePadding, h - bottomPadding); // Start from origin
+                    ctx.lineTo(x, y); // End on the curve
+                }
+                ctx.stroke(); // Draw all rays
+
+                // --- Draw the top line ---
+                ctx.beginPath();
+                ctx.lineWidth = (window.innerWidth < 640 ? 2 : 4) * window.devicePixelRatio; // Thinner line on mobile
+                ctx.strokeStyle = currentTheme.graph; // Reset stroke style
+                ctx.moveTo(sidePadding, h - bottomPadding);
+                let lineLastX = sidePadding;
+                let lineLastY = h - bottomPadding;
+                for (let t = 0; t <= graphDuration; t += 0.05) {
+                    const x = sidePadding + (w - 2 * sidePadding) * (t / 10);
+                    const multiplier = 1 + 0.1 * Math.pow(t, 2);
+                    const y = Math.max(topPadding, (h - bottomPadding) - graphHeight * (Math.log(multiplier) / Math.log(15))); // Clamp Y
+                    
+                    if (x > w - sidePadding) break;
+
+                    ctx.lineTo(x, y);
+                    lineLastX = x;
+                    lineLastY = y;
+                }
+                ctx.stroke(); // Draw the line on top of the fill
+            }
+
+            // --- Draw Plane (NEW LOGIC) ---
+            if (gameState === 'IN_PROGRESS') {
+                drawPlane(planeX, planeY, angle);
+            } else if (gameState === 'CRASHED') {
+                // Calculate "flew away" animation
+                const flewAwayDuration = (time - crashTime) / 1000; // Time since crash
+                const flewAwayX = planeX + flewAwayDuration * 500 * window.devicePixelRatio; // Fly right
+                const flewAwayY = planeY - flewAwayDuration * 300 * window.devicePixelRatio; // Fly up
+                const shakeY = (Math.random() - 0.5) * 10 * window.devicePixelRatio; // Shake
+                drawPlane(flewAwayX, flewAwayY + shakeY, angle - flewAwayDuration * 0.5); // Add a bit of tilt
+            }
+
+
+            // --- Draw Main Multiplier/Timer Text ---
+            let mainText, subText;
+            let textColor = '#FFFFFF'; // Default white
+            let glowColor = 'rgba(0, 150, 255, 0.5)'; // Default blue glow
+            let showGlow = false;
+            let textYPosition = h / 2.5;
+
+            // NEW: Responsive font sizes
+            const mainFontSize = Math.min(w / 10, (window.innerWidth < 640 ? 60 : 90)) * window.devicePixelRatio;
+            const subFontSize = Math.min(w / 20, (window.innerWidth < 640 ? 24 : 40)) * window.devicePixelRatio;
+            const timerFontSize = Math.min(w / 18, (window.innerWidth < 640 ? 28 : 40)) * window.devicePixelRatio;
+
+            if (gameState === 'IN_PROGRESS') {
+                mainText = `${currentMultiplier.toFixed(2)}x`;
+                showGlow = true;
+            } else if (gameState === 'CRASHED') {
+                mainText = `${crashPoint.toFixed(2)}x`;
+                subText = `FLEW AWAY!`;
+                textColor = '#F56565'; // red-500
+                showGlow = false;
+                textYPosition = h / 2.2; // Move multiplier down if subtext is present
+            } else if (gameState === 'WAITING') {
+                // NEW: Draw Professional Waiting Timer
+                const timerText = `NEXT ROUND IN ${waitingTimer.toFixed(1)}S`;
+                ctx.font = `bold ${timerFontSize}px Inter`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const textMetrics = ctx.measureText(timerText);
+                const textWidth = textMetrics.width;
+                const textHeight = timerFontSize * 1.5; // Approximate height
+
+                const boxPaddingX = 20 * window.devicePixelRatio;
+                const boxPaddingY = 15 * window.devicePixelRatio;
+
+                const boxWidth = textWidth + boxPaddingX * 2;
+                const boxHeight = textHeight + boxPaddingY * 2;
+
+                const boxX = (w / 2) - (boxWidth / 2);
+                const boxY = (h / 2) - (boxHeight / 2) + (50 * window.devicePixelRatio); // Adjust position slightly lower
+
+                // Draw background box
+                ctx.fillStyle = 'rgba(10, 20, 30, 0.7)'; // Dark translucent background
+                ctx.strokeStyle = 'rgba(0, 191, 255, 0.4)'; // Light blue border
+                ctx.lineWidth = 2 * window.devicePixelRatio;
+                ctx.beginPath();
+                ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 10 * window.devicePixelRatio); // Rounded corners
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw timer text
+                ctx.fillStyle = '#00BFFF'; // Bright blue for timer
+                ctx.shadowBlur = 20 * window.devicePixelRatio;
+                ctx.shadowColor = 'rgba(0, 191, 255, 0.6)'; // Blue glow for timer
+                ctx.fillText(timerText, w / 2, boxY + boxHeight / 2);
+                ctx.shadowBlur = 0; // Reset shadow
+                return; // Stop here as we've drawn the timer
+            }
+            
+            // Apply glow for in-progress
+            if (showGlow) {
+                ctx.shadowBlur = 40 * window.devicePixelRatio;
+                ctx.shadowColor = glowColor;
+            }
+            
+            // Draw Main Text (Multiplier)
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${mainFontSize}px Inter`; // Bigger font
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(mainText, w / 2, textYPosition);
+            
+            // Draw Subtext (FLEW AWAY!) if applicable
+            if (subText) {
+                ctx.font = `bold ${subFontSize}px Inter`;
+                ctx.fillStyle = textColor;
+                ctx.fillText(subText, w / 2, h / 3.2); // Position above main multiplier
+            }
+            
+            // Reset shadow
+            ctx.shadowBlur = 0;
+        }
+
+        // --- Game Logic ---
+
+        function getCrashPoint() {
+            // 1 in 15 chance of instant crash
+            if (Math.random() < 1 / 15) {
+                return 1.00;
+            }
+            // Use a formula to generate a multiplier
+            // This creates a distribution where low multipliers are more common
+            const e = 2 ** 32;
+            const h = crypto.getRandomValues(new Uint32Array(1))[0];
+            const crash = Math.floor((100 * e - h) / (e - h)) / 100;
+            return Math.max(1.01, crash);
+        }
+
+        function startGameLoop() {
+            lastUpdateTime = performance.now();
+            
+            function gameLoop(timestamp) {
+                const deltaTime = (timestamp - lastUpdateTime) / 1000;
+                lastUpdateTime = timestamp;
+                
+                // Only run game logic if cheat input is NOT visible
+                if (cheatInputBox.classList.contains('hidden')) {
+
+                    if (gameState === 'WAITING') {
+                        waitingTimer -= deltaTime;
+                        if (waitingTimer <= 0) {
+                            startRound();
+                        }
+                    } else if (gameState === 'IN_PROGRESS') {
+                        const elapsed = (timestamp - startTime) / 1000; // seconds
+                        currentMultiplier = 1 + 0.1 * Math.pow(elapsed, 2);
+                        
+                        updateLiveBets(); // Update the "pro" bet list
+                        
+                        if (currentMultiplier >= crashPoint) {
+                            endRound();
+                        }
+                    } else if (gameState === 'CRASHED') {
+                        crashedTimer -= deltaTime;
+                        if (crashedTimer <= 0) {
+                            resetForNextRound();
+                        }
+                    }
+                    
+                    updateUI();
+                } else {
+                    // When cheat is active, just keep the UI frozen
+                }
+
+                drawGraph(timestamp);
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+            
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        
+        function startRound() {
+            gameState = 'IN_PROGRESS';
+            startTime = performance.now();
+            crashPoint = getCrashPoint();
+            currentMultiplier = 1.00;
+            playSound('start');
+        }
+        
+        function endRound() {
+            crashTime = performance.now(); // NEW: Set the crash timestamp
+            gameState = 'CRASHED';
+            crashedTimer = 0.5; // REDUCED
+            playSound('crash');
+            endRoundLiveBets();
+            
+            [1, 2].forEach(panelNum => {
+                const state = betStates[panelNum];
+                if (state.hasPlacedBet && !state.hasCashedOut) {
+                    showNotification(`Panel ${panelNum}: You lost ${state.currentBet.toFixed(2)} coins.`, 'error');
+                }
+            });
+            
+            history.push(crashPoint);
+            updateHistoryBar();
+        }
+        
+        function resetForNextRound() {
+            gameState = 'WAITING';
+            waitingTimer = 5;
+            
+            betStates[1] = { currentBet: 0, hasPlacedBet: false, hasCashedOut: false };
+            betStates[2] = { currentBet: 0, hasPlacedBet: false, hasCashedOut: false };
+            
+            generateLiveBets(); // Generate new players for next round
+        }
+        
+        // --- CHEAT LOGIC IMPLEMENTATION ---
+        
+        let cheatTapCount = 0;
+        let lastTapTime = 0;
+        const TAP_TIMEOUT = 500; // Taps must occur within 500ms of each other
+
+        function handleTitleTap() {
+            const now = performance.now();
+            
+            // If time since last tap is too long, reset the counter
+            if (now - lastTapTime > TAP_TIMEOUT) {
+                cheatTapCount = 0;
+            }
+
+            cheatTapCount++;
+            lastTapTime = now;
+            
+            // console.log("Tap count:", cheatTapCount); // Hidden console log
+
+            if (cheatTapCount >= 5) {
+                cheatTapCount = 0; // Reset counter immediately
+                showFounderCodePrompt();
+            }
+        }
+
+        function showFounderCodePrompt() {
+            // Display the hidden input box
+            cheatInputBox.classList.remove('hidden');
+            founderCodeInput.value = '';
+            founderCodeInput.focus();
+        }
+
+        function submitCode() {
+            const code = founderCodeInput.value.toLowerCase().trim();
+            
+            if (code === 'cs') {
+                const reward = 50000;
+                userCoins += reward;
+                
+                // Hide the prompt and notify the user
+                cheatInputBox.classList.add('hidden');
+                showNotification(`Founder Code Accepted! +${reward.toLocaleString()} Coins!`, 'success');
+                updateUI();
+                
+            } else {
+                // Wrong code feedback
+                showNotification("Invalid Founder's Code.", 'error');
+                founderCodeInput.value = '';
+                founderCodeInput.focus();
+            }
+        }
+        
+        // --- Event Listeners Setup ---
+        
+        function handleBetClick(panelNum) {
+            const state = betStates[panelNum];
+            const dom = betPanels[panelNum];
+
+            if (gameState === 'WAITING') {
+                if (state.hasPlacedBet) { // "Cancel"
+                    userCoins += state.currentBet; 
+                    state.currentBet = 0;
+                    state.hasPlacedBet = false;
+                    showNotification(`Panel ${panelNum} Bet cancelled.`, 'info');
+                } else { // "Bet"
+                    const bet = parseFloat(dom.amountEl.value);
+                    if (isNaN(bet) || bet < 1.00) {
+                        showNotification(`Panel ${panelNum}: Bet must be at least 1.00.`, 'error');
+                        return;
+                    }
+                    if (bet > userCoins) {
+                        showNotification(`Panel ${panelNum}: Not enough coins.`, 'error');
+                        return;
+                    }
+                    
+                    userCoins -= bet;
+                    state.currentBet = bet;
+                    state.hasPlacedBet = true;
+                    showNotification(`Panel ${panelNum}: Bet of ${bet.toFixed(2)} coins placed!`, 'success');
+                    playSound('bet');
+                }
+            } else if (gameState === 'IN_PROGRESS' && state.hasPlacedBet && !state.hasCashedOut) { // "Cash Out"
+                const winnings = state.currentBet * currentMultiplier;
+                userCoins += winnings;
+                state.hasCashedOut = true;
+                showNotification(`Panel ${panelNum}: Cashed out ${winnings.toFixed(2)} coins!`, 'success');
+                playSound('cashout');
+            }
+            updateUI();
+        }
+
+        function setupPanelListeners(panelNum) {
+            const dom = betPanels[panelNum];
+            const state = betStates[panelNum];
+
+            // Main Bet Button
+            dom.buttonEl.addEventListener('click', () => handleBetClick(panelNum));
+
+            // Amount Input
+            dom.amountEl.addEventListener('input', () => {
+                if (!state.hasPlacedBet) {
+                    let val = parseFloat(dom.amountEl.value); // Read value on input
+                    if (isNaN(val)) val = 1.00;
+                    dom.buttonAmountSpan.textContent = val.toFixed(2);
+                }
+            });
+            dom.amountEl.addEventListener('change', () => { // Catch blur
+                if (!state.hasPlacedBet) {
+                    let val = parseFloat(dom.amountEl.value);
+                    if (isNaN(val) || val < 1.00) val = 1.00;
+                    dom.amountEl.value = val.toFixed(2);
+                    dom.buttonAmountSpan.textContent = val.toFixed(2);
+                }
+            });
+
+
+            // Minus Button
+            dom.minusEl.addEventListener('click', () => {
+                if (gameState === 'WAITING' && !state.hasPlacedBet) {
+                    let currentVal = parseFloat(dom.amountEl.value);
+                    let newVal = Math.max(1.00, currentVal - 1.00); // Decrement by 1
+                    dom.amountEl.value = newVal.toFixed(2);
+                    dom.buttonAmountSpan.textContent = newVal.toFixed(2);
+                }
+            });
+
+            // Plus Button
+            dom.plusEl.addEventListener('click', () => {
+                if (gameState === 'WAITING' && !state.hasPlacedBet) {
+                    let currentVal = parseFloat(dom.amountEl.value);
+                    let newVal = Math.min(Math.floor(userCoins), currentVal + 1.00); // Increment by 1
+                    dom.amountEl.value = newVal.toFixed(2);
+                    dom.buttonAmountSpan.textContent = newVal.toFixed(2);
+                }
+            });
+
+            // Quick Bet Buttons
+            dom.quickBetBtns.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    if (gameState === 'WAITING' && !state.hasPlacedBet) {
+                        const amount = parseFloat(e.target.dataset.amount);
+                        if (amount <= userCoins) {
+                            dom.amountEl.value = amount.toFixed(2);
+                            dom.buttonAmountSpan.textContent = amount.toFixed(2);
+                        } else {
+                            showNotification(`Panel ${panelNum}: Not enough coins.`, 'error');
+                        }
+                    }
+                });
+            });
+        }
+        
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            drawGraph(performance.now()); // Redraw immediately on resize
+        });
+
+        // --- CHEAT LISTENERS ---
+        gameTitleEl.addEventListener('click', handleTitleTap);
+        submitCheatBtn.addEventListener('click', submitCode);
+        founderCodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                submitCode();
+            }
+        });
+        
+        // --- Initial Setup ---
+        setupPanelListeners(1);
+        setupPanelListeners(2);
+        resizeCanvas();
+        updateUI();
+        generateLiveBets(); // Initial load of fake players
+        startGameLoop();
+
+    </script>
+</body>
+</html>

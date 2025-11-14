@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbie's Game Hub</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Tone.js for audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <!-- Google Font (Poppins) for a fun, stylish look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles */
+        :root {
+            --bg-page: #FFF0F5; /* A light lavender blush pink */
+            --bg-shell: #ffffff;
+            --bg-header: #f06292; /* A strong, hot pink */
+            --text-header: #ffffff;
+            --bg-card: #fce4ec; /* A very light, soft pink for cards */
+            --text-card-title: #c2185b; /* A deep pink for text */
+            --text-body: #333;
+            --text-nav: #6b7280; /* gray-500 */
+            --text-nav-hover: #f06292;
+            --bg-play-button: #f06292;
+            --bg-modal: rgba(0, 0, 0, 0.5);
+            --bg-modal-content: #ffffff;
+            --shadow-nav: 0 -4px 10px rgba(0,0,0,0.05);
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --toggle-bg: #E5E7EB; /* gray-200 */
+            --toggle-knob: #ffffff;
+        }
+
+        /* Sparkle Night (Dark) Theme */
+        .theme-dark {
+            --bg-page: #2a0013;
+            --bg-shell: #1a000a;
+            --bg-header: #a0004f;
+            --text-header: #ffe4f0;
+            --bg-card: #4d0025;
+            --text-card-title: #ffb8d9;
+            --text-body: #fce4ec;
+            --text-nav: #d1d5db; /* gray-300 */
+            --text-nav-hover: #f06292;
+            --bg-play-button: #f06292;
+            --bg-modal: rgba(0, 0, 0, 0.7);
+            --bg-modal-content: #4d0025;
+            --shadow-nav: 0 -4px 10px rgba(240, 98, 146, 0.2);
+            --shadow-card: 0 4px 6px -1px rgba(240, 98, 146, 0.1), 0 2px 4px -1px rgba(240, 98, 146, 0.06);
+            --toggle-bg: #a0004f;
+            --toggle-knob: #f06292;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-body);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Custom color definitions */
+        .bg-barbie-pink { background-color: var(--bg-header); }
+        .text-barbie-header { color: var(--text-header); }
+        .bg-barbie-light { background-color: var(--bg-card); }
+        .text-barbie-dark { color: var(--text-card-title); }
+        .text-nav-idle { color: var(--text-nav); }
+        .hover\:text-barbie-pink:hover { color: var(--text-nav-hover); }
+        .bg-play-btn { background-color: var(--bg-play-button); }
+
+        .mobile-shell {
+            max-width: 450px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: var(--bg-shell);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+
+        @keyframes pulse-animation {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .pulse-animate { animation: pulse-animation 2s infinite; }
+
+        /* Modal Styles */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-modal);
+            z-index: 40;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        .modal-content {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 450px;
+            margin: 0 auto;
+            background-color: var(--bg-modal-content);
+            color: var(--text-body);
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            z-index: 50;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content.active {
+            transform: translateY(0);
+        }
+
+        /* Pull-down handle for modal */
+        .modal-handle {
+            width: 50px;
+            height: 6px;
+            background-color: #d1d5db; /* gray-300 */
+            border-radius: 3px;
+            margin: 0 auto 16px;
+        }
+
+        /* Card image style */
+        .game-card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Cover the square box */
+        }
+        
+        .bottom-nav {
+            box-shadow: var(--shadow-nav);
+            background-color: var(--bg-shell);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .game-card-item {
+             box-shadow: var(--shadow-card);
+             transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .game-card-item:hover {
+            transform: scale(1.05);
+        }
+
+        /* Custom Toggle Switch */
+        .toggle-switch {
+            width: 50px;
+            height: 28px;
+            background-color: var(--toggle-bg);
+            border-radius: 9999px;
+            padding: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .toggle-knob {
+            width: 20px;
+            height: 20px;
+            background-color: var(--toggle-knob);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        .toggle-switch.active .toggle-knob {
+            transform: translateX(22px);
+        }
+
+    </style>
+</head>
+<body class="bg-pink-50">
+
+    <!-- Mobile Shell Container -->
+    <div class="mobile-shell">
+
+        <!-- Header -->
+        <header class="bg-barbie-pink text-barbie-header p-5 text-center sticky top-0 z-10 shadow-md">
+            <h1 class="text-2xl font-bold tracking-wide">Barbie's Game Hub</h1>
+        </header>
+
+        <!-- Main Game Grid -->
+        <main class="p-4 grid grid-cols-2 gap-4 pb-28">
+
+            <!-- 
+                Game Card Data Structure:
+                - class="game-card": The trigger for the JS
+                - data-title: The game's title
+                - data-img-url: The URL for the "real" image
+                - data-play-url: The link for the "Play" button (e.g., aviator.html)
+                - data-desc: A short description for the modal
+                - data-how: "How to Play" instructions
+            -->
+
+            <!-- Game 1: Aviator -->
+            <a href="#" class="group game-card" 
+                data-title="Aviator"
+                data-img-url="https://loremflickr.com/320/320/plane,game,sky/all"
+                data-play-url="aviator.html"
+                data-desc="Soar to new heights! Place your bet and watch the multiplier climb. Cash out before the plane flies away to win!"
+                data-how="1. Place your bet before the round starts.<br>2. Watch the multiplier increase as the plane flies.<br>3. Click 'Cash Out' at any time to take your winnings.<br>4. If you don't cash out before it flies away, you lose your bet.">
+                
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/plane,game,sky/all" alt="Aviator Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Aviator'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Aviator</span>
+                </div>
+            </a>
+
+            <!-- Game 2: Fashionista -->
+            <a href="#" class="group game-card"
+                data-title="Fashionista"
+                data-img-url="https://loremflickr.com/320/320/fashion,dressup,game/all"
+                data-play-url="#"
+                data-desc="Create the ultimate looks! Mix and match outfits, accessories, and hairstyles to become a style icon."
+                data-how="1. Select a model to style.<br>2. Browse the wardrobe of tops, bottoms, dresses, and shoes.<br>3. Drag and drop items onto your model.<br>4. Don't forget to add accessories and change hairstyles!">
+
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/fashion,dressup,game/all" alt="Fashionista Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Fashion'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Fashionista</span>
+                </div>
+            </a>
+
+            <!-- Game 3: Dream House -->
+            <a href="#" class="group game-card"
+                data-title="Dream House Designer"
+                data-img-url="https://loremflickr.com/320/320/dollhouse,decorating,game/all"
+                data-play-url="#"
+                data-desc="Design and decorate your very own dream house! Choose furniture, paint, and decorations for every room."
+                data-how="1. Pick a room to decorate (Living Room, Bedroom, etc.).<br>2. Select furniture from the catalog.<br>3. Place, rotate, and resize items in the room.<br>4. Change wallpaper and flooring to complete your design.">
+                
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/dollhouse,decorating,game/all" alt="Dream House Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Dream+House'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Dream House</span>
+                </div>
+            </a>
+
+            <!-- Game 4: Puzzle Pop -->
+            <a href="#" class="group game-card"
+                data-title="Puzzle Pop Party"
+                data-img-url="https://loremflickr.com/320/320/puzzle,match3,game/all"
+                data-play-url="#"
+                data-desc="A fun and colorful match-3 puzzle adventure! Pop matching gems to clear levels and unlock new worlds."
+                data-how="1. Swap two adjacent gems to make a line of 3 or more.<br>2. Match 4 or 5 to create special power-up gems.<br>3. Complete the level objective (e.g., score, clear items) before you run out of moves.">
+                
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/puzzle,match3,game/all" alt="Puzzle Pop Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Puzzle'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Puzzle Pop</span>
+                </div>
+            </a>
+
+            <!-- Game 5: Pet Vet -->
+            <a href="#" class="group game-card"
+                data-title="Pet Vet Clinic"
+                data-img-url="https://loremflickr.com/320/320/cute,puppy,kitten,game/all"
+                data-play-url="#"
+                data-desc="Help cute animals feel better! Diagnose and treat adorable pets in your very own veterinary clinic."
+                data-how="1. A new pet will arrive at your clinic.<br>2. Check their symptoms to diagnose the problem.<br>3. Use the right tools (stethoscope, thermometer) to treat them.<br>4. Make all the pets happy and healthy!">
+                
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/cute,puppy,kitten,game/all" alt="Pet Vet Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Pet+Vet'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Pet Vet</span>
+                </div>
+            </a>
+
+            <!-- Game 6: Music Star -->
+            <a href="#" class="group game-card"
+                data-title="Music Star"
+                data-img-url="https://loremflickr.com/320/320/music,concert,game/all"
+                data-play-url="#"
+                data-desc="Become a music superstar! Play instruments, write songs, and perform on stage in front of your fans."
+                data-how="1. Choose your instrument (guitar, piano, drums).<br>2. Follow the rhythm prompts to play songs correctly.<br>3. Earn fans and unlock new songs and stages.<br>4. Customize your pop star's look!">
+                
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/music,concert,game/all" alt="Music Star Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Music+Star'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Music Star</span>
+                </div>
+            </a>
+            
+            <!-- Game 7: Beach Day -->
+            <a href="#" class="group game-card"
+                data-title="Beach Day Fun"
+                data-img-url="https://loremflickr.com/320/320/beach,volleyball,game/all"
+                data-play-url="#"
+                data-desc="Enjoy a perfect day at the beach! Play volleyball, build sandcastles, and go for a swim in the ocean."
+                data-how="1. Choose an activity from the beach map.<br>2. Play mini-games like volleyball or surfing.<br>3. Find hidden shells in the sand.<br>4. Don't forget to put on sunscreen!">
+                
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/beach,volleyball,game/all" alt="Beach Day Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Beach+Day'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Beach Day</span>
+                </div>
+            </a>
+
+            <!-- Game 8: Cake Bake -->
+            <a href="#" class="group game-card"
+                data-title="Cake Bake Challenge"
+                data-img-url="https://loremflickr.com/320/320/cake,baking,game/all"
+                data-play-url="#"
+                data-desc="Bake and decorate delicious cakes! Follow recipes, mix ingredients, and create beautiful, tasty masterpieces."
+                data-how="1. Select a cake recipe to follow.<br>2. Drag ingredients to the bowl and mix.<br>3. Bake your cake in the oven.<br>4. Decorate with frosting, sprinkles, and fruit!">
+                
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/cake,baking,game/all" alt="Cake Bake Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Cake+Bake'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Cake Bake</span>
+                </div>
+            </a>
+
+            <!-- Game 9: Style Studio -->
+            <a href="#" class="group game-card"
+                data-title="Style Studio"
+                data-img-url="https://loremflickr.com/320/320/makeup,hairstyle,game/all"
+                data-play-url="#"
+                data-desc="Your complete beauty salon! Create stunning makeup looks and design amazing new hairstyles."
+                data-how="1. Choose a model for a makeover.<br>2. Select makeup: eyeshadow, lipstick, blush.<br>3. Go to the hair salon to cut, color, and style.<br>4. See the final before-and-after!">
+                
+                <div class="aspect-square bg-barbie-light rounded-2xl shadow-lg overflow-hidden flex flex-col game-card-item">
+                    <img src="https://loremflickr.com/320/320/makeup,hairstyle,game/all" alt="Style Studio Game" class="game-card-image flex-grow" onerror="this.src='https://placehold.co/320x320/fce4ec/c2185b?text=Style+Studio'">
+                    <span class="font-semibold text-barbie-dark text-center p-2">Style Studio</span>
+                </div>
+            </a>
+
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto h-20 rounded-t-2xl bottom-nav">
+            <div class="flex justify-around items-center h-full">
+
+                <!-- Nav Item 1: Home (active by default) -->
+                <a href="#" id="home-button" class="flex flex-col items-center justify-center text-barbie-pink transition-colors">
+                    <svg class="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                    </svg>
+                    <span class="text-xs font-medium mt-1">Home</span>
+                </a>
+
+                <!-- Nav Item 2: Arcade (new icon, solid) -->
+                <a href="#" id="arcade-button" class="flex flex-col items-center justify-center text-nav-idle hover:text-barbie-pink transition-colors">
+                    <!-- NEW ICON: Solid Grid -->
+                    <svg class="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                    </svg>
+                    <span class="text-xs font-medium mt-1">Arcade</span>
+                </a>
+
+                <!-- Nav Item 3: The MIDDLE "Play" Button - EDITED ICON -->
+                <a href="#" class="flex items-center justify-center bg-play-btn text-white w-16 h-16 rounded-full -mt-10 shadow-xl border-4 border-white transform transition-transform hover:scale-110 duration-300 pulse-animate">
+                    <!-- NEW ICON: Sparkle (Solid) -->
+                    <svg class="w-8 h-8" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.25 12L17.438 14.846a4.5 4.5 0 01-3.09 3.09L11.5 18.75l.813-2.846a4.5 4.5 0 013.09-3.09L18.25 12z" />
+                    </svg>
+                </a>
+
+                <!-- Nav Item 4: Rewards (new icon) -->
+                <!-- EDITED: Added id="rewards-button" -->
+                <a href="#" id="rewards-button" class="flex flex-col items-center justify-center text-nav-idle hover:text-barbie-pink transition-colors">
+                     <!-- NEW ICON: Solid Trophy -->
+                    <svg class="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19.5 9V4.5a3 3 0 00-3-3h-9a3 3 0 00-3 3V9H3a1.5 1.5 0 00-1.5 1.5v3.75a3 3 0 003 3h1.5v3.75a1.5 1.5 0 001.5 1.5h9a1.5 1.5 0 001.5-1.5V17.25h1.5a3 3 0 003-3V10.5A1.5 1.5 0 0021 9h-1.5zm-3-4.5a1.5 1.5 0 011.5 1.5V9h-3V6a1.5 1.5 0 011.5-1.5zm-4.5 0a1.5 1.5 0 011.5 1.5V9h-3V6a1.5 1.5 0 011.5-1.5zm-6 1.5a1.5 1.5 0 011.5-1.5V9h-3V6a1.5 1.5 0 011.5-1.5z" />
+                    </svg>
+                    <span class="text-xs font-medium mt-1">Rewards</span>
+                </a>
+
+                <!-- Nav Item 5: Profile (new icon, solid) -->
+                <a href="#" id="profile-button" class="flex flex-col items-center justify-center text-nav-idle hover:text-barbie-pink transition-colors">
+                    <!-- NEW ICON: Solid User Circle -->
+                    <svg class="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                      <path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zM12 6.75a3.75 3.75 0 100 7.5 3.75 3.75 0 000-7.5z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-xs font-medium mt-1">Profile</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Game Details Modal -->
+    <div id="game-modal-backdrop" class="modal-backdrop"></div>
+    <div id="game-modal-content" class="modal-content">
+        <div class="modal-handle"></div>
+        <img id="game-modal-img" src="https://placehold.co/400x200/fce4ec/c2185b?text=Game+Image" alt="Game Image" class="w-full h-48 object-cover rounded-xl mb-4">
+        <h2 id="game-modal-title" class="text-3xl font-bold mb-2 text-barbie-dark">Game Title</h2>
+        <p id="game-modal-desc" class="text-base mb-4">Game description goes here.</p>
+        
+        <h3 class="text-xl font-semibold mb-2 text-barbie-dark">How to Play</h3>
+        <div id="game-modal-how" class="text-sm mb-6 space-y-1">
+            <!-- How to play steps will be injected here -->
+        </div>
+        
+        <a id="game-modal-play-btn" href="#" class="block w-full text-center bg-barbie-pink text-white font-bold py-3 px-4 rounded-lg text-lg hover:bg-pink-700 transition-colors">
+            Play Now
+        </a>
+    </div>
+
+    <!-- Profile & Settings Modal -->
+    <div id="settings-modal-backdrop" class="modal-backdrop"></div>
+    <div id="settings-modal-content" class="modal-content">
+        <div class="modal-handle"></div>
+        
+        <!-- Profile Section -->
+        <div class="flex items-center mb-6">
+            <img src="https://loremflickr.com/320/320/barbie,avatar/all" alt="Profile Avatar" class="w-16 h-16 rounded-full border-4 border-barbie-pink mr-4" onerror="this.src='https://placehold.co/128x128/fce4ec/c2185b?text=Avatar'">
+            <div>
+                <h2 class="text-2xl font-bold text-barbie-dark">BarbieFan123</h2>
+                <p class="text-sm">Welcome back, let's play!</p>
+            </div>
+        </div>
+
+        <!-- Theme Toggle Section -->
+        <h3 class="text-xl font-semibold mb-4 text-barbie-dark">Settings</h3>
+        <div class="flex items-center justify-between bg-barbie-light p-4 rounded-lg mb-3">
+            <span class="font-medium">Sparkle Night</span>
+            <div id="theme-toggle" class="toggle-switch">
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+
+        <!-- Other Settings -->
+        <div class="flex items-center justify-between bg-barbie-light p-4 rounded-lg mb-3">
+            <span class="font-medium">Notifications</span>
+            <div id="notify-toggle" class="toggle-switch active"> <!-- Default to "on" -->
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+        <!-- EDITED: Sound FX to Background Music -->
+        <div class="flex items-center justify-between bg-barbie-light p-4 rounded-lg mb-6">
+            <span class="font-medium">Background Music</span>
+            <div id="music-toggle" class="toggle-switch active"> <!-- Default to "on" -->
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+        
+        <button id="settings-close-btn" class="block w-full text-center bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg text-lg hover:bg-gray-400 transition-colors">
+            Close
+        </button>
+    </div>
+
+    <!-- NEW: Rewards Modal -->
+    <div id="rewards-modal-backdrop" class="modal-backdrop"></div>
+    <div id="rewards-modal-content" class="modal-content">
+        <div class="modal-handle"></div>
+        
+        <!-- Coin Balance Section -->
+        <div class="text-center mb-6">
+            <h3 class="text-xl font-semibold text-barbie-dark">Your Coins</h3>
+            <div class="flex items-center justify-center mt-2">
+                <!-- Coin Icon -->
+                <svg class="w-10 h-10 text-yellow-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"/>
+                </svg>
+                <span id="user-coin-balance" class="text-5xl font-bold text-barbie-dark">1000</span>
+            </div>
+        </div>
+
+        <!-- Get Coins Options -->
+        <h3 class="text-xl font-semibold mb-4 text-barbie-dark">Get More Coins</h3>
+        
+        <!-- Watch Ad Button -->
+        <button id="watch-ad-btn" class="flex items-center justify-center w-full text-center bg-purple-500 text-white font-bold py-3 px-4 rounded-lg text-lg hover:bg-purple-600 transition-colors mb-3">
+            <!-- Video Icon -->
+            <svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            Watch Ad for 50 Coins
+        </button>
+
+        <!-- Buy Coins Button -->
+        <button id="buy-coins-btn" class="flex items-center justify-center w-full text-center bg-barbie-pink text-white font-bold py-3 px-4 rounded-lg text-lg hover:bg-pink-700 transition-colors mb-6">
+            <!-- Credit Card Icon -->
+            <svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h6m3-3.75l-3 3m0 0l-3-3m3 3V15m6-1.5l3 3m0 0l3-3m-3 3V15m-6-6.75h.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.75m-6 0h.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.75m6 0h.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.75m6 0h.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.75" />
+            </svg>
+            Buy 1000 Coins (₹80)
+        </button>
+        
+        <button id="rewards-close-btn" class="block w-full text-center bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg text-lg hover:bg-gray-400 transition-colors">
+            Close
+        </button>
+    </div>
+
+    <!-- NEW: Arcade Modal -->
+    <div id="arcade-modal-backdrop" class="modal-backdrop"></div>
+    <div id="arcade-modal-content" class="modal-content">
+        <div class="modal-handle"></div>
+        
+        <!-- Arcade Section -->
+        <div class="text-center">
+            <h2 class="text-3xl font-bold mb-4 text-barbie-dark">Arcade</h2>
+            <div class="flex flex-col items-center justify-center text-center">
+                <!-- Arcade Icon -->
+                <svg class="w-24 h-24 text-barbie-pink opacity-50 mb-4" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                </svg>
+                <p class="text-lg mb-6">More exciting games and features are coming soon to the Arcade!</p>
+            </div>
+        </div>
+        
+        <button id="arcade-close-btn" class="block w-full text-center bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg text-lg hover:bg-gray-400 transition-colors">
+            Close
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Coin State ---
+            let userCoins = 1000;
+            
+            // --- Audio Setup ---
+            let isAudioReady = false;
+            // Create a simple synth
+            const synth = new Tone.Synth({
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 0.8 }
+            }).toDestination();
+            
+            // Create a simple melody loop
+            const melody = new Tone.Sequence((time, note) => {
+                synth.triggerAttackRelease(note, "8n", time);
+            }, ["C4", "E4", "G4", "E4"], "4n");
+            
+            melody.loop = true;
+            Tone.Transport.bpm.value = 100;
+            
+            async function startAudio() {
+                if (isAudioReady) return;
+                try {
+                    await Tone.start();
+                    isAudioReady = true;
+                    console.log("Audio context started.");
+                    // Start transport if toggle is already active
+                    if (musicToggle.classList.contains('active')) {
+                        Tone.Transport.start();
+                        melody.start(0);
+                    }
+                } catch (e) {
+                    console.error("Audio context could not be started:", e);
+                }
+            }
+
+
+            // --- Modal Elements ---
+            const gameModalBackdrop = document.getElementById('game-modal-backdrop');
+            const gameModalContent = document.getElementById('game-modal-content');
+            const settingsModalBackdrop = document.getElementById('settings-modal-backdrop');
+            const settingsModalContent = document.getElementById('settings-modal-content');
+            const rewardsModalBackdrop = document.getElementById('rewards-modal-backdrop');
+            const rewardsModalContent = document.getElementById('rewards-modal-content');
+            // NEW
+            const arcadeModalBackdrop = document.getElementById('arcade-modal-backdrop');
+            const arcadeModalContent = document.getElementById('arcade-modal-content');
+
+            // --- Game Modal Content ---
+            const gameModalImg = document.getElementById('game-modal-img');
+            const gameModalTitle = document.getElementById('game-modal-title');
+            const gameModalDesc = document.getElementById('game-modal-desc');
+            const gameModalHow = document.getElementById('game-modal-how');
+            const gameModalPlayBtn = document.getElementById('game-modal-play-btn');
+
+            // --- Triggers ---
+            const gameCards = document.querySelectorAll('.game-card');
+            const profileButton = document.getElementById('profile-button');
+            const homeButton = document.getElementById('home-button');
+            const arcadeButton = document.getElementById('arcade-button'); // NEW
+            const settingsCloseButton = document.getElementById('settings-close-btn');
+            const rewardsButton = document.getElementById('rewards-button');
+            const rewardsCloseButton = document.getElementById('rewards-close-btn');
+            const watchAdButton = document.getElementById('watch-ad-btn');
+            const buyCoinsButton = document.getElementById('buy-coins-btn');
+            const userCoinBalance = document.getElementById('user-coin-balance');
+            // NEW
+            const arcadeCloseButton = document.getElementById('arcade-close-btn');
+
+
+            // --- NEW: Nav Link Management ---
+            const allNavLinks = document.querySelectorAll('.bottom-nav a:not(.bg-play-btn)');
+
+            // NEW: Function to set the active nav link
+            function setActiveNav(activeLink) {
+                // 1. Remove active class from all links
+                allNavLinks.forEach(link => {
+                    link.classList.remove('text-barbie-pink');
+                    link.classList.add('text-nav-idle');
+                });
+                // 2. Add active class to the clicked link
+                activeLink.classList.add('text-barbie-pink');
+                activeLink.classList.remove('text-nav-idle');
+            }
+
+
+            // --- Settings Toggles ---
+            const themeToggle = document.getElementById('theme-toggle');
+            const notifyToggle = document.getElementById('notify-toggle');
+            // EDITED: Get music-toggle instead of sound-toggle
+            const musicToggle = document.getElementById('music-toggle');
+            
+            // --- General Modal Functions ---
+            function showModal(backdrop, content) {
+                backdrop.classList.add('active');
+                content.classList.add('active');
+                // Try to start audio when a modal is opened (user interaction)
+                startAudio();
+            }
+            
+            function hideModal(backdrop, content) {
+                backdrop.classList.remove('active');
+                content.classList.remove('active');
+            }
+            
+            function hideAllModals() {
+                hideModal(gameModalBackdrop, gameModalContent);
+                hideModal(settingsModalBackdrop, settingsModalContent);
+                hideModal(rewardsModalBackdrop, rewardsModalContent);
+                hideModal(arcadeModalBackdrop, arcadeModalContent); // NEW
+            }
+
+            // --- Game Modal Logic ---
+            gameCards.forEach(card => {
+                card.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // 1. Get data from clicked card
+                    const title = card.dataset.title;
+                    const imgUrl = card.dataset.imgUrl;
+                    const playUrl = card.dataset.playUrl;
+                    const desc = card.dataset.desc;
+                    const how = card.dataset.how;
+
+                    // 2. Populate modal
+                    gameModalTitle.textContent = title;
+                    gameModalImg.src = imgUrl;
+                    gameModalImg.onerror = () => {
+                        gameModalImg.src = `https://placehold.co/400x200/fce4ec/c2185b?text=${title.replace(' ', '+')}`;
+                    };
+                    gameModalDesc.textContent = desc;
+                    gameModalHow.innerHTML = how; // Use innerHTML because of <br> tags
+                    gameModalPlayBtn.href = playUrl;
+
+                    // 3. Show modal
+                    showModal(gameModalBackdrop, gameModalContent);
+                });
+            });
+
+            // Close game modal when backdrop is clicked
+            gameModalBackdrop.addEventListener('click', () => {
+                hideModal(gameModalBackdrop, gameModalContent);
+            });
+
+            // --- Settings Modal Logic ---
+            profileButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllModals(); // NEW: Hide other modals first
+                showModal(settingsModalBackdrop, settingsModalContent);
+                setActiveNav(profileButton); // NEW: Set active nav
+            });
+
+            // Close settings modal
+            function closeSettings() {
+                hideModal(settingsModalBackdrop, settingsModalContent);
+            }
+            settingsModalBackdrop.addEventListener('click', closeSettings);
+            settingsCloseButton.addEventListener('click', closeSettings);
+            
+            // --- Nav Button Click Logic ---
+            
+            // Home button closes all modals
+            homeButton.addEventListener('click', (e) => {
+                 e.preventDefault();
+                 hideAllModals();
+                 setActiveNav(homeButton); // NEW: Set active nav
+            });
+
+            // Arcade button
+            arcadeButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllModals(); // First, close any other open modals
+                showModal(arcadeModalBackdrop, arcadeModalContent); // NEW: Show arcade modal
+                setActiveNav(arcadeButton); // NEW: Set active nav
+            });
+
+
+            // --- Theme Toggle Logic ---
+            themeToggle.addEventListener('click', () => {
+                // Try to start audio on first interaction
+                startAudio();
+                themeToggle.classList.toggle('active');
+                if (themeToggle.classList.contains('active')) {
+                    document.body.classList.add('theme-dark');
+                } else {
+                    document.body.classList.remove('theme-dark');
+                }
+            });
+
+            // --- Other Toggles Logic ---
+            notifyToggle.addEventListener('click', () => {
+                // Try to start audio on first interaction
+                startAudio();
+                notifyToggle.classList.toggle('active');
+            });
+            
+            // EDITED: Renamed to musicToggle and added audio logic
+            musicToggle.addEventListener('click', () => {
+                // Start audio context on first click
+                startAudio();
+                
+                musicToggle.classList.toggle('active');
+                if (musicToggle.classList.contains('active')) {
+                    // Start the transport and the melody
+                    if(isAudioReady) {
+                        Tone.Transport.start();
+                        melody.start(0);
+                    }
+                } else {
+                    // Stop the transport
+                    if(isAudioReady) {
+                        Tone.Transport.stop();
+                    }
+                }
+            });
+
+            // --- NEW: Arcade Modal Logic ---
+            function closeArcade() {
+                hideModal(arcadeModalBackdrop, arcadeModalContent);
+            }
+            arcadeModalBackdrop.addEventListener('click', closeArcade);
+            arcadeCloseButton.addEventListener('click', closeArcade);
+
+            // --- NEW: Rewards Modal Logic ---
+            function updateCoinDisplay() {
+                userCoinBalance.textContent = userCoins;
+            }
+
+            rewardsButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideAllModals(); // NEW: Hide other modals first
+                updateCoinDisplay();
+                showModal(rewardsModalBackdrop, rewardsModalContent);
+                setActiveNav(rewardsButton); // NEW: Set active nav
+            });
+
+            function closeRewards() {
+                hideModal(rewardsModalBackdrop, rewardsModalContent);
+            }
+            rewardsModalBackdrop.addEventListener('click', closeRewards);
+            rewardsCloseButton.addEventListener('click', closeRewards);
+
+            watchAdButton.addEventListener('click', () => {
+                // Disable button and show loading
+                watchAdButton.disabled = true;
+                watchAdButton.innerHTML = 'Simulating Ad (3s)...';
+
+                // Simulate ad watch time
+                setTimeout(() => {
+                    userCoins += 50; // Add 50 coins
+                    updateCoinDisplay();
+                    
+                    // Re-enable button
+                    watchAdButton.disabled = false;
+                    watchAdButton.innerHTML = `
+                        <svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                        </svg>
+                        Watch Ad for 50 Coins
+                    `;
+                }, 3000); // 3 second ad
+            });
+
+            buyCoinsButton.addEventListener('click', () => {
+                // In a real app, this would trigger a payment gateway.
+                // For now, we'll just simulate the purchase.
+                buyCoinsButton.disabled = true;
+                buyCoinsButton.textContent = 'Processing...';
+
+                setTimeout(() => {
+                    userCoins += 1000;
+                    updateCoinDisplay();
+                    
+                    buyCoinsButton.disabled = false;
+                    buyCoinsButton.innerHTML = `
+                        <svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h6m3-3.75l-3 3m0 0l-3-3m3 3V15m6-1.5l3 3m0 0l3-3m-3 3V15m-6-6.75h.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.75m-6 0h.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.75m6 0h.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.75m6 0h.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125h-.75" />
+                        </svg>
+                        Buy 1000 Coins (₹80)
+                    `;
+                    console.log('Payment complete. 1000 coins added.');
+                }, 1500);
+            });
+            
+            // Add fallback images for all game cards
+            document.querySelectorAll('.game-card-image').forEach(img => {
+                const altText = img.alt.replace(' Game', '').replace(' ', '+');
+                img.onerror = () => {
+                    img.src = `https://placehold.co/320x320/fce4ec/c2185b?text=${altText}`;
+                };
+            });
+
+        });
+    </script>
+</body>
+</html>
